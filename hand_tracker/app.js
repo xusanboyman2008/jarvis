@@ -288,29 +288,14 @@ function clearAllSketches() {
 // --- PERSISTENT SCENE OBJECTS ---
 const DEFAULT_SCENE_TEMPLATES = [
   {
-    id: "OBJ_RING",
-    name: "JARVIS Core",
-    icon: "⚡",
-    desc: "AI Presence Hub // Tap for Orbs",
-    x: 640,
-    y: 200,
-    radius: 95,
-    scale: 1.0,
-    rotX: 0,
-    rotY: 0,
-    rotZ: 0,
-    color: "#00e5ff",
-    idOffset: 0.0
-  },
-  {
     id: "OBJ_HELMET",
     name: "Sci-Fi Helmet",
     modelPath: "models/damaged_helmet.glb",
     icon: "🪖",
     desc: "Battle-Damaged Titanium Helmet // PBR",
-    x: 340,
-    y: 470,
-    radius: 120,
+    x: 400,
+    y: 360,
+    radius: 135,
     scale: 1.0,
     rotX: 0.15,
     rotY: 0,
@@ -324,9 +309,9 @@ const DEFAULT_SCENE_TEMPLATES = [
     modelPath: "models/robot_expressive.glb",
     icon: "🤖",
     desc: "Animated Cyber Android // Active",
-    x: 940,
-    y: 470,
-    radius: 120,
+    x: 880,
+    y: 360,
+    radius: 135,
     scale: 1.0,
     rotX: 0.1,
     rotY: 0,
@@ -337,65 +322,23 @@ const DEFAULT_SCENE_TEMPLATES = [
 ];
 
 const DEFAULT_OBJECT_POSITIONS = [
-  { id: "OBJ_RING", x: 640, y: 200, scale: 1.0, modelScale: 1.0, rotX: 0, rotY: 0, rotZ: 0, modelRotX: 0, modelRotY: 0, modelRotZ: 0 },
-  { id: "OBJ_HELMET", x: 340, y: 470, scale: 1.0, modelScale: 1.0, rotX: 0.15, rotY: 0, rotZ: 0, modelRotX: 0, modelRotY: 0, modelRotZ: 0 },
-  { id: "OBJ_ROBOT", x: 940, y: 470, scale: 1.0, modelScale: 1.0, rotX: 0.1, rotY: 0, rotZ: 0, modelRotX: 0, modelRotY: 0, modelRotZ: 0 }
+  { id: "OBJ_HELMET", x: 400, y: 360, scale: 1.0, modelScale: 1.0, rotX: 0.15, rotY: 0, rotZ: 0, modelRotX: 0, modelRotY: 0, modelRotZ: 0 },
+  { id: "OBJ_ROBOT", x: 880, y: 360, scale: 1.0, modelScale: 1.0, rotX: 0.1, rotY: 0, rotZ: 0, modelRotX: 0, modelRotY: 0, modelRotZ: 0 }
 ];
 
 const SCENE_OBJECTS = [
-  {
-    id: "OBJ_RING",
-    name: "JARVIS Core",
-    icon: "⚡",
-    desc: "AI Presence Hub // Tap for Orbs",
-    x: 640,
-    y: 200,
-    targetX: 640,
-    targetY: 200,
-    prevTargetX: 640,
-    prevTargetY: 200,
-    vx: 0,
-    vy: 0,
-    physVx: 0,
-    physVy: 0,
-    physVrot: 0,
-    throwVx: 0,
-    throwVy: 0,
-    peakThrowVx: 0,
-    peakThrowVy: 0,
-    lastHandMoveTime: 0,
-    radius: 95,
-    scale: 1.0,
-    targetScale: 1.0,
-    modelScale: 1.0,
-    targetModelScale: 1.0,
-    rotX: 0,
-    rotY: 0,
-    rotZ: 0,
-    targetRotX: 0,
-    targetRotY: 0,
-    targetRotZ: 0,
-    modelRotX: 0,
-    targetModelRotX: 0,
-    modelRotY: 0,
-    targetModelRotY: 0,
-    modelRotZ: 0,
-    targetModelRotZ: 0,
-    color: "#00e5ff",
-    idOffset: 0.0
-  },
   {
     id: "OBJ_HELMET",
     name: "Sci-Fi Helmet",
     modelPath: "models/damaged_helmet.glb",
     icon: "🪖",
     desc: "Battle-Damaged Titanium Helmet // PBR",
-    x: 340,
-    y: 470,
-    targetX: 340,
-    targetY: 470,
-    prevTargetX: 340,
-    prevTargetY: 470,
+    x: 400,
+    y: 360,
+    targetX: 400,
+    targetY: 360,
+    prevTargetX: 400,
+    prevTargetY: 360,
     vx: 0,
     vy: 0,
     physVx: 0,
@@ -406,7 +349,7 @@ const SCENE_OBJECTS = [
     peakThrowVx: 0,
     peakThrowVy: 0,
     lastHandMoveTime: 0,
-    radius: 120,
+    radius: 135,
     scale: 1.0,
     targetScale: 1.0,
     modelScale: 1.0,
@@ -432,12 +375,12 @@ const SCENE_OBJECTS = [
     modelPath: "models/robot_expressive.glb",
     icon: "🤖",
     desc: "Animated Cyber Android // Active",
-    x: 940,
-    y: 470,
-    targetX: 940,
-    targetY: 470,
-    prevTargetX: 940,
-    prevTargetY: 470,
+    x: 880,
+    y: 360,
+    targetX: 880,
+    targetY: 360,
+    prevTargetX: 880,
+    prevTargetY: 360,
     vx: 0,
     vy: 0,
     physVx: 0,
@@ -448,7 +391,7 @@ const SCENE_OBJECTS = [
     peakThrowVx: 0,
     peakThrowVy: 0,
     lastHandMoveTime: 0,
-    radius: 120,
+    radius: 135,
     scale: 1.0,
     targetScale: 1.0,
     modelScale: 1.0,
@@ -746,7 +689,7 @@ function initThreeScene() {
   });
 }
 
-function load3DModel(obj) {
+function load3DModel(obj, attempt = 0) {
   if (typeof THREE === 'undefined' || typeof THREE.GLTFLoader === 'undefined' || !obj.modelPath) {
     return;
   }
@@ -755,8 +698,19 @@ function load3DModel(obj) {
     gltfLoaderInstance = new THREE.GLTFLoader();
   }
 
+  const rawPath = obj.modelPath.split('?')[0];
+  const filename = rawPath.split('/').pop();
+  const candidatePaths = [
+    rawPath,
+    `models/${filename}`,
+    `media/models/${filename}`,
+    `./models/${filename}`,
+    `./media/models/${filename}`
+  ];
+  const loadPath = candidatePaths[attempt] || candidatePaths[0];
+
   gltfLoaderInstance.load(
-    obj.modelPath,
+    loadPath,
     (gltf) => {
       const model = gltf.scene;
 
@@ -813,6 +767,9 @@ function load3DModel(obj) {
       if (obj.protoGroup && obj.threeGroup) {
         obj.threeGroup.remove(obj.protoGroup);
       }
+      if (obj.gltfModel && obj.threeGroup) {
+        obj.threeGroup.remove(obj.gltfModel);
+      }
       obj.threeGroup.add(pivotWrapper);
       obj.gltfModel = pivotWrapper;
 
@@ -823,11 +780,14 @@ function load3DModel(obj) {
         });
         obj.mixer = mixer;
       }
-      console.log(`Successfully loaded & centered 3D model: ${obj.name}`);
+      console.log(`[3D] Loaded ${obj.name} from: ${loadPath}`);
     },
     undefined,
     (error) => {
-      console.warn(`Could not load GLB ${obj.modelPath}:`, error);
+      console.warn(`[3D] Failed loading ${loadPath} (attempt ${attempt + 1}/${candidatePaths.length}):`, error);
+      if (attempt + 1 < candidatePaths.length) {
+        load3DModel(obj, attempt + 1);
+      }
     }
   );
 }
@@ -4237,30 +4197,21 @@ async function init() {
       activeModelName = "MediaPipe Real-Time [Lite 60FPS]";
     }
 
-    systemStatusText.textContent = `STATUS: READY [${activeModelName}]`;
+    if (systemStatusText) systemStatusText.textContent = `STATUS: READY [${activeModelName}]`;
     await startWebcam();
   } catch (err) {
-    systemStatusText.textContent = "STATUS: READY [HYBRID MOUSE & VISION]";
-    permissionModal.style.display = 'block';
+    if (systemStatusText) systemStatusText.textContent = "STATUS: READY [HYBRID MOUSE & VISION]";
+    if (permissionModal) permissionModal.style.display = 'block';
   }
 }
 
 // Button & Fullscreen Bindings
-btnToggleCam.addEventListener('click', startWebcam);
-btnRequestCam.addEventListener('click', startWebcam);
-btnSimMode.addEventListener('click', startSimulator);
-btnDemoMode.addEventListener('click', startSimulator);
+if (btnToggleCam) btnToggleCam.addEventListener('click', startWebcam);
+if (btnRequestCam) btnRequestCam.addEventListener('click', startWebcam);
+if (btnSimMode) btnSimMode.addEventListener('click', startSimulator);
+if (btnDemoMode) btnDemoMode.addEventListener('click', startSimulator);
 
-const btnToggleHud = document.getElementById('btn-toggle-hud');
 const btnFullscreen = document.getElementById('btn-fullscreen');
-const sidebarPanel = document.getElementById('sidebar-panel');
-
-if (btnToggleHud && sidebarPanel) {
-  btnToggleHud.addEventListener('click', () => {
-    sidebarPanel.classList.toggle('collapsed');
-    barehandsFoley.toggleOn();
-  });
-}
 
 if (btnFullscreen) {
   btnFullscreen.addEventListener('click', () => {
@@ -4271,14 +4222,11 @@ if (btnFullscreen) {
       document.exitFullscreen().catch(() => {});
       btnFullscreen.textContent = "⛶ FULLSCREEN";
     }
-    barehandsFoley.arrive();
+    if (barehandsFoley) barehandsFoley.arrive();
   });
 }
 
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'h' || e.key === 'H') {
-    if (sidebarPanel) sidebarPanel.classList.toggle('collapsed');
-  }
   if (e.key === 'm' || e.key === 'M') {
     if (cyberpunkMusic) cyberpunkMusic.toggle();
   }

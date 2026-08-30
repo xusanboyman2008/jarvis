@@ -35,9 +35,8 @@
         <div id="track-title-text" class="track-info">JARVIS Cyberpunk Synth</div>
       </div>
 
-      <button id="btn-open-chooser" class="hdr-btn" style="border-color:#ff007f; color:#ff007f;">🖼️ 3D MEDIA CHOOSER</button>
-      <a href="/stage.html" class="hdr-btn" style="text-decoration:none; display:inline-flex; align-items:center; background:rgba(0,229,255,0.18); border:1px solid #00e5ff; color:#00e5ff; font-weight:700; padding:6px 12px; border-radius:6px; font-size:12px;">✨ JARVIS GLASS STAGE</a>
-      <button id="btn-toggle-hud" class="hdr-btn">🎛️ HUD / SIDEBAR</button>
+      <button id="btn-open-chooser" class="hdr-btn" style="border-color:#ff007f; color:#ff007f;">🖼️ 3D MEDIA CHOOSER [G]</button>
+      <a href="/stage.html" class="hdr-btn" style="text-decoration:none; display:inline-flex; align-items:center; background:rgba(0,229,255,0.18); border:1px solid #00e5ff; color:#00e5ff; font-weight:700; padding:6px 12px; border-radius:6px; font-size:12px;">✨ GLASS STAGE</a>
       <button id="btn-fullscreen" class="hdr-btn">⛶ FULLSCREEN</button>
     </div>
   </header>
@@ -102,114 +101,7 @@
       <div id="pointed-object-banner" class="gesture-banner" style="display: block;">
         READY
       </div>
-
-      <!-- Camera Start Modal -->
-      <div id="permission-modal" class="system-modal" style="display: none;">
-        <h3 style="color: #00ffcc; margin-bottom: 10px; font-size: 17px;">WEBCAM INITIALIZATION</h3>
-        <p style="color: #94a3b8; font-size: 12px; margin-bottom: 16px; line-height: 1.5;">
-          Allow camera access for high-precision 60 FPS hand tracking and 3D spatial model manipulation.
-        </p>
-        <button id="btn-request-camera" class="btn">▶ ENABLE CAMERA</button>
-        <button id="btn-demo-mode" class="btn btn-secondary">⚡ TEST SIMULATOR</button>
-      </div>
     </div>
-
-    <!-- Floating Collapsible Telemetry Sidebar -->
-    <aside class="sidebar" id="sidebar-panel">
-      
-      <!-- Selected 3D Model Card -->
-      <div class="card" style="border: 2px solid #00ffcc;">
-        <div class="card-title" style="color: #00ffcc;">Active 3D Model</div>
-        <div id="selected-object-icon" style="font-size: 38px; text-align: center; margin: 4px 0;">🪖</div>
-        <div id="selected-object-name" style="font-size: 15px; font-weight: 800; text-align: center; color: #00ffcc; margin-bottom: 2px;">
-          Sci-Fi Helmet
-        </div>
-        <div id="selected-object-desc" style="font-size: 11px; color: #94a3b8; text-align: center;">
-          ✌️ 2-Finger (1.5s): 3D Model Rotate | ✊ Fist: Drag & 3D
-        </div>
-      </div>
-
-      <!-- Practical Controls Guide -->
-      <div class="card" style="border: 1px solid #00e5ff;">
-        <div class="card-title" style="color: #00e5ff;">⚡ Barehands Spatial Controls</div>
-        <div style="font-size: 11px; line-height: 1.5; color: #f1f5f9;">
-          <div><strong style="color: #00e5ff;">⚡ Tap Ring:</strong> 🌸 <em>Bloom Orbs Menu</em> (Notes, Models, Sketch, Explode, Recall)</div>
-          <div><strong style="color: #a855f7;">👏 Clap Hands:</strong> 🎯 Palms together (fingers up) <em>recalls Ring to center</em></div>
-          <div><strong style="color: #ff007f;">✏️ 3D Air Sketch:</strong> ☝️ 1-finger pointer draws <em>floating neon light trails</em></div>
-          <div><strong style="color: #38bdf8;">💥 3D Explode View:</strong> 🔍 Disassembles models into exploded components</div>
-          <div><strong style="color: #00ffcc;">👐 Dual-Hand Grab:</strong> 👈 Left + 👉 Right Hands hold <em>2 separate objects at once</em></div>
-          <div><strong style="color: #00e5ff;">✌️ 2-Finger (Index+Middle):</strong> 🔄 Instant <em>3D Model Rotation inside box</em></div>
-          <div><strong style="color: #ff007f;">🤏 2-Finger (Thumb+Pointer):</strong> 🔍 Spread / Pinch to <em>Scale Model</em></div>
-          <div><strong style="color: #ffff00;">✊ Fist Grab:</strong> ✊ Instant drag. <em>Swipe to throw</em> with physics momentum</div>
-          <div><strong style="color: #00ffcc;">👉 Laser + 🖐️ Open + ✊ Fist:</strong> 🧲 <em>Force Pull</em> object to hand (within 5.0s)</div>
-          <div><strong style="color: #ff0033;">🗑️ 70% Warning / 90% Delete:</strong> Warns in red at 70%, deletes when released at 90%+</div>
-        </div>
-      </div>
-
-      <!-- Controls -->
-      <div class="card">
-        <div class="card-title">Stream & Stage Controls</div>
-        <button id="btn-toggle-cam" class="btn">📷 START / RESTART CAMERA</button>
-        <button id="btn-sim-mode" class="btn btn-secondary">⚡ INTERACTIVE SIMULATOR</button>
-        <button id="btn-reset-layout" class="btn" style="border-color: #64748b; color: #94a3b8; margin-top: 2px;">🔄 RESET DEFAULT POSITIONS</button>
-      </div>
-
-      <!-- Left Hand Card -->
-      <div class="card">
-        <div class="card-title">
-          <span>Left Hand 👈</span>
-          <span id="left-fingers-val" style="color: #00ffcc;">-</span>
-        </div>
-        <div style="font-size: 11px; margin-bottom: 4px; color: #f8fafc;">
-          Gesture: <strong id="left-gesture-val" style="color: #00ffcc;">None</strong>
-        </div>
-        <div class="finger-grid">
-          <div id="left-thumb" class="finger-item"><div>👍</div><div>THB</div></div>
-          <div id="left-index" class="finger-item"><div>☝️</div><div>IDX</div></div>
-          <div id="left-middle" class="finger-item"><div>🖐️</div><div>MID</div></div>
-          <div id="left-ring" class="finger-item"><div>💍</div><div>RNG</div></div>
-          <div id="left-pinky" class="finger-item"><div>🤙</div><div>PNK</div></div>
-        </div>
-      </div>
-
-      <!-- Right Hand Card -->
-      <div class="card">
-        <div class="card-title">
-          <span>Right Hand 👉</span>
-          <span id="right-fingers-val" style="color: #ff007f;">-</span>
-        </div>
-        <div style="font-size: 11px; margin-bottom: 4px; color: #f8fafc;">
-          Gesture: <strong id="right-gesture-val" style="color: #ff007f;">None</strong>
-        </div>
-        <div class="finger-grid">
-          <div id="right-thumb" class="finger-item"><div>👍</div><div>THB</div></div>
-          <div id="right-index" class="finger-item"><div>☝️</div><div>IDX</div></div>
-          <div id="right-middle" class="finger-item"><div>🖐️</div><div>MID</div></div>
-          <div id="right-ring" class="finger-item"><div>💍</div><div>RNG</div></div>
-          <div id="right-pinky" class="finger-item"><div>🤙</div><div>PNK</div></div>
-        </div>
-      </div>
-
-      <!-- Display Options -->
-      <div class="card">
-        <div class="card-title">Display Options</div>
-        <div class="toggle-group">
-          <div class="toggle-row">
-            <span>Video Background</span>
-            <label class="switch"><input type="checkbox" id="toggle-video" checked><span class="slider"></span></label>
-          </div>
-          <div class="toggle-row">
-            <span>Skeleton Bones</span>
-            <label class="switch"><input type="checkbox" id="toggle-skeleton" checked><span class="slider"></span></label>
-          </div>
-          <div class="toggle-row">
-            <span>Laser Pointer</span>
-            <label class="switch"><input type="checkbox" id="toggle-laser" checked><span class="slider"></span></label>
-          </div>
-        </div>
-      </div>
-
-    </aside>
   </main>
 
   <script src="app.js"></script>
