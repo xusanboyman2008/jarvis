@@ -189,62 +189,6 @@ let frameCountVision = 0;
 let currentFpsVision = 60;
 let globalAnimTime = 0;
 
-// =========================================================================
-// ⚡ BAREHANDS AI PRESENCE RING & BLOOMING ORBS MENU ENGINE
-// =========================================================================
-class BarehandsAIEngine {
-  constructor() {
-    this.state = 'idle'; // 'idle' | 'listening' | 'thinking' | 'speaking'
-    this.mood = 'cyan';  // 'cyan' | 'amber' | 'magenta'
-    this.isBloomed = false;
-    this.bloomProgress = 0.0;
-    this.lastStateChange = performance.now();
-    this.tapTime = 0;
-    this.amp = 0.0;
-    this.activeOrbId = null;
-    this.lastClapTime = 0;
-    this.isSketchActive = false;
-    this.isExplodeActive = false;
-    this.explodeAmount = 0.0;
-    
-    this.orbs = [
-      { id: 'notes', label: 'NOTES', icon: '📝', color: '#00e5ff', angle: -Math.PI * 0.55, dist: 165 },
-      { id: 'models', label: 'MODELS', icon: '🤖', color: '#eab308', angle: -Math.PI * 0.15, dist: 165 },
-      { id: 'sketch', label: 'SKETCH', icon: '✏️', color: '#ff007f', angle: Math.PI * 0.25, dist: 165 },
-      { id: 'explode', label: 'EXPLODE', icon: '💥', color: '#a855f7', angle: Math.PI * 0.65, dist: 165 },
-      { id: 'reset', label: 'RECALL', icon: '⚡', color: '#00ffcc', angle: Math.PI * 1.05, dist: 165 }
-    ];
-  }
-
-  toggleBloom() {
-    this.isBloomed = !this.isBloomed;
-    this.tapTime = performance.now();
-    barehandsFoley.arrive();
-    return this.isBloomed;
-  }
-
-  setState(st) {
-    this.state = st;
-    this.lastStateChange = performance.now();
-  }
-
-  update(dt) {
-    const targetBloom = this.isBloomed ? 1.0 : 0.0;
-    this.bloomProgress += (targetBloom - this.bloomProgress) * Math.min(1.0, dt * 10.0);
-    
-    const targetExplode = this.isExplodeActive ? 1.0 : 0.0;
-    this.explodeAmount += (targetExplode - this.explodeAmount) * Math.min(1.0, dt * 8.0);
-    
-    const now = performance.now();
-    if (this.state === 'speaking') {
-      this.amp = 0.4 + Math.sin(now * 0.014) * 0.35 + Math.random() * 0.22;
-    } else {
-      this.amp *= 0.88;
-    }
-  }
-}
-const barehandsAI = new BarehandsAIEngine();
-
 // --- 3D SPATIAL AIR DRAWING (SKETCH TRAILS) ---
 const sketchTrails = [];
 let currentSketchStroke = null;
@@ -1155,258 +1099,6 @@ function classifyGesture(analysis, landmarks, handLabel = 'Right') {
   }
 }
 
-// --- ⚡ RENDER BAREHANDS AI PRESENCE RING & RADIAL BLOOMING ORBS MENU ---
-function drawBarehandsRing(ctx, obj, isTargeted, isThisGrabbed, isConfirmed, dt) {
-  barehandsAI.update(dt);
-  const { state, mood, bloomProgress, amp, orbs } = barehandsAI;
-  const now = performance.now();
-  const rad = obj.radius * obj.scale;
-
-  ctx.save();
-  ctx.translate(obj.x, obj.y);
-  ctx.rotate(obj.rotZ);
-
-  // 1. Blooming Radial Orbs Menu
-  if (bloomProgress > 0.01) {
-    orbs.forEach(orb => {
-      const curDist = orb.dist * bloomProgress * obj.scale;
-      const ox = Math.cos(orb.angle) * curDist;
-      const oy = Math.sin(orb.angle) * curDist;
-      const orbR = 34 * bloomProgress * obj.scale;
-
-      ctx.save();
-      ctx.translate(ox, oy);
-
-      // Check hover / targeting
-      const isOrbHovered = barehandsAI.activeOrbId === orb.id;
-
-      // Frosted Glass Orb Background
-      ctx.beginPath();
-      ctx.arc(0, 0, orbR, 0, Math.PI * 2);
-      ctx.fillStyle = isOrbHovered ? "rgba(18, 54, 50, 0.95)" : "rgba(8, 28, 26, 0.88)";
-      ctx.fill();
-
-      // Outer Luminous Border
-      ctx.strokeStyle = isOrbHovered ? "#ffffff" : orb.color;
-      ctx.lineWidth = isOrbHovered ? 3.0 : 1.8;
-      ctx.shadowColor = orb.color;
-      ctx.shadowBlur = isOrbHovered ? 20 : 10;
-      ctx.stroke();
-
-      // Inner specular arc
-      ctx.beginPath();
-      ctx.arc(0, 0, orbR - 4, -Math.PI * 0.8, -Math.PI * 0.2);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Icon Emoji
-      ctx.shadowBlur = 0;
-      ctx.font = `${Math.round(20 * bloomProgress * obj.scale)}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(orb.icon, 0, -3);
-
-      // Label beneath Orb
-      ctx.fillStyle = isOrbHovered ? "#ffffff" : "#a8d8cf";
-      ctx.font = `bold ${Math.max(9, Math.round(10 * bloomProgress * obj.scale))}px 'JetBrains Mono', monospace`;
-      ctx.fillText(orb.label, 0, orbR + 14);
-
-      ctx.restore();
-    });
-  }
-
-  // 2. The Main AI Presence Ring
-  // Outer Glowing Aura
-  const breath = 0.92 + 0.08 * Math.sin(now * 0.002);
-  const glowBlur = (12 + amp * 32) * breath;
-  
-  // Solid Outer Hot Rim
-  ctx.beginPath();
-  ctx.arc(0, 0, rad, 0, Math.PI * 2);
-  ctx.strokeStyle = state === 'speaking' ? "#ffffff" : (isThisGrabbed ? "#00ffcc" : "rgba(140, 240, 225, 0.9)");
-  ctx.lineWidth = 3.0 + amp * 4.0;
-  ctx.shadowColor = "#00e5ff";
-  ctx.shadowBlur = glowBlur;
-  ctx.stroke();
-
-  // Thick Luminous Power Band
-  ctx.beginPath();
-  ctx.arc(0, 0, rad * 0.90, 0, Math.PI * 2);
-  ctx.strokeStyle = state === 'speaking' ? "rgba(235, 250, 252, 0.95)" : "rgba(0, 229, 255, 0.85)";
-  ctx.lineWidth = 14 + amp * 6;
-  ctx.shadowBlur = glowBlur + 6;
-  ctx.stroke();
-
-  // Inner Thin Ring
-  ctx.beginPath();
-  ctx.arc(0, 0, rad * 0.78, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(0, 229, 255, 0.45)";
-  ctx.lineWidth = 1.5;
-  ctx.shadowBlur = 0;
-  ctx.stroke();
-
-  // Concentric Radial Ticks (48 ticks)
-  const numTicks = 48;
-  for (let i = 0; i < numTicks; i++) {
-    const a = (i / numTicks) * Math.PI * 2;
-    const isMajor = i % 4 === 0;
-    const rIn = rad * (isMajor ? 0.68 : 0.72);
-    const rOut = rad * 0.76;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * rIn, Math.sin(a) * rIn);
-    ctx.lineTo(Math.cos(a) * rOut, Math.sin(a) * rOut);
-    ctx.strokeStyle = isMajor ? "rgba(0, 229, 255, 0.75)" : "rgba(0, 229, 255, 0.35)";
-    ctx.lineWidth = isMajor ? 2.0 : 1.0;
-    ctx.stroke();
-  }
-
-  // State FX in Core
-  if (state === 'listening') {
-    // Inward drawing pulses
-    for (let k = 0; k < 3; k++) {
-      const p = ((now * 0.0008) + k / 3) % 1.0;
-      ctx.beginPath();
-      ctx.arc(0, 0, rad * (0.76 - p * 0.45), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(0, 229, 255, ${(1.0 - p) * 0.75})`;
-      ctx.lineWidth = 2.2;
-      ctx.stroke();
-    }
-  } else if (state === 'thinking') {
-    // Rotating radar sweep
-    const sweepA = now * 0.0035;
-    for (let i = 0; i < 8; i++) {
-      const a = sweepA - i * 0.12;
-      ctx.beginPath();
-      ctx.arc(0, 0, rad * 0.70, a - 0.12, a);
-      ctx.strokeStyle = `rgba(0, 229, 255, ${0.65 * (1 - i / 8)})`;
-      ctx.lineWidth = 6;
-      ctx.shadowBlur = 10;
-      ctx.stroke();
-    }
-    ctx.shadowBlur = 0;
-  }
-
-  // Glass Core Disk
-  ctx.beginPath();
-  ctx.arc(0, 0, rad * 0.58, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(4, 18, 20, 0.72)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0, 229, 255, 0.85)";
-  ctx.lineWidth = 2.0;
-  ctx.stroke();
-
-  // Wordmark + Status
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 15px 'JetBrains Mono', monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("J.A.R.V.I.S.", 0, -8);
-
-  ctx.fillStyle = "#00ffcc";
-  ctx.font = "bold 10px 'JetBrains Mono', monospace";
-  const stateLabel = state.toUpperCase();
-  ctx.fillText(stateLabel, 0, 12);
-
-  // Bottom Hint: "TAP FOR ORBS"
-  ctx.fillStyle = isThisGrabbed ? "#ffff00" : (barehandsAI.isBloomed ? "#00e5ff" : "#94a3b8");
-  ctx.font = "bold 10px 'JetBrains Mono', monospace";
-  ctx.fillText(barehandsAI.isBloomed ? "✦ ORBS BLOOMED // TAP TO FOLD" : "✦ TAP RING TO BLOOM ORBS", 0, rad + 24);
-
-  ctx.restore();
-}
-
-// --- 📝 RENDER BAREHANDS GLASS MARKDOWN NOTES CARD ---
-function drawGlassNoteCard(ctx, obj, isTargeted, isThisGrabbed, isConfirmed, dt) {
-  const w = 460;
-  const h = 280;
-  const hw = w / 2;
-  const hh = h / 2;
-
-  ctx.save();
-  ctx.translate(obj.x, obj.y);
-  ctx.rotate(obj.rotZ);
-
-  // 1. Frosted Smoked Dark Teal Glass Background
-  ctx.beginPath();
-  ctx.roundRect(-hw, -hh, w, h, 14);
-  const grad = ctx.createLinearGradient(-hw, -hh, hw, hh);
-  grad.addColorStop(0, "rgba(22, 58, 52, 0.94)");
-  grad.addColorStop(1, "rgba(8, 24, 22, 0.96)");
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Luminous Cyan / Teal Edge
-  ctx.strokeStyle = isThisGrabbed ? "#00ffcc" : (isTargeted ? "rgba(0, 229, 255, 0.9)" : "rgba(111, 229, 214, 0.55)");
-  ctx.lineWidth = isThisGrabbed ? 2.5 : 1.5;
-  ctx.shadowColor = "#00e5ff";
-  ctx.shadowBlur = isThisGrabbed ? 22 : 12;
-  ctx.stroke();
-
-  // Top Specular Highlight Edge
-  ctx.beginPath();
-  ctx.moveTo(-hw + 14, -hh + 1.5);
-  ctx.lineTo(hw - 14, -hh + 1.5);
-  ctx.strokeStyle = "rgba(210, 255, 248, 0.65)";
-  ctx.lineWidth = 1.5;
-  ctx.shadowBlur = 0;
-  ctx.stroke();
-
-  // 2. Top Header Bar
-  ctx.fillStyle = "rgba(0, 229, 255, 0.12)";
-  ctx.fillRect(-hw + 1, -hh + 1, w - 2, 38);
-
-  ctx.fillStyle = "#8ff0e4";
-  ctx.font = "bold 13px 'JetBrains Mono', monospace";
-  ctx.textAlign = "left";
-  ctx.textBaseline = "middle";
-  ctx.fillText("⚡ JARVIS // DIRECTIVES & GESTURES", -hw + 16, -hh + 20);
-
-  // Close Button [✕] at Top-Right
-  const closeBtnX = hw - 22;
-  const closeBtnY = -hh + 20;
-  ctx.beginPath();
-  ctx.arc(closeBtnX, closeBtnY, 11, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(0, 229, 255, 0.25)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0, 229, 255, 0.8)";
-  ctx.lineWidth = 1.2;
-  ctx.stroke();
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 11px monospace";
-  ctx.textAlign = "center";
-  ctx.fillText("✕", closeBtnX, closeBtnY + 1);
-
-  // 3. Formatted Directives & Gestures Content Rows
-  const items = [
-    { tag: "👐 DUAL GRAB", desc: "Left + Right hands hold 2 objects simultaneously", col: "#00e5ff" },
-    { tag: "✌️ 3D ROTATE", desc: "Index+Middle 2-finger gesture spins 3D pitch/yaw/roll", col: "#00ffcc" },
-    { tag: "🤏 3D SCALE", desc: "Thumb+Pointer 2-finger spread to expand / shrink", col: "#ff007f" },
-    { tag: "✊ FIST THROW", desc: "Instant grab & swing to launch with momentum glide", col: "#ffff00" },
-    { tag: "👏 CLAP", desc: "Palms together (fingers up) recalls JARVIS to center", col: "#a855f7" },
-    { tag: "✏️ 3D SKETCH", desc: "1-finger pointer draws floating neon light ribbons", col: "#ff007f" },
-    { tag: "💥 EXPLODE", desc: "Scrub / tap explode orb to disassemble 3D meshes", col: "#38bdf8" }
-  ];
-
-  let rowY = -hh + 56;
-  ctx.textAlign = "left";
-  items.forEach(item => {
-    // Tag Badge
-    ctx.fillStyle = item.col;
-    ctx.font = "bold 11px 'JetBrains Mono', monospace";
-    ctx.fillText(item.tag, -hw + 16, rowY);
-
-    // Description
-    ctx.fillStyle = "#dcf5ee";
-    ctx.font = "11px sans-serif";
-    ctx.fillText(item.desc, -hw + 120, rowY);
-
-    rowY += 28;
-  });
-
-  ctx.restore();
-}
-
 // --- 🎨 RENDER 3D SPATIAL AIR DRAWING TRAILS ---
 function drawSketchTrails(ctx) {
   if (sketchTrails.length === 0) return;
@@ -1558,15 +1250,6 @@ function renderSceneObjects(ctx, pointerRays, isEngaged, activePointedId, dwellP
       if (obj.mixer) {
         obj.mixer.update(dt);
       }
-
-      if (obj.submeshes && obj.submeshes.length > 0) {
-        const expAmt = barehandsAI.explodeAmount;
-        obj.submeshes.forEach(sm => {
-          sm.mesh.position.x = sm.homePos.x + sm.dir.x * (expAmt * 50.0);
-          sm.mesh.position.y = sm.homePos.y + sm.dir.y * (expAmt * 50.0);
-          sm.mesh.position.z = sm.homePos.z + sm.dir.z * (expAmt * 50.0);
-        });
-      }
     }
 
     // Laser Raycast targeting test
@@ -1595,17 +1278,12 @@ function renderSceneObjects(ctx, pointerRays, isEngaged, activePointedId, dwellP
     const isModelRotating = isTwoFingerRotating && twoFingerRotateObjId === obj.id;
     const isScalingRightHand = isRightHandScaling && rightHandScaleObjId === obj.id;
 
-    if (obj.id === "OBJ_RING") {
-      drawBarehandsRing(ctx, obj, isTargeted, isThisGrabbed, isConfirmed, dt);
-    } else if (obj.id === "OBJ_NOTE") {
-      drawGlassNoteCard(ctx, obj, isTargeted, isThisGrabbed, isConfirmed, dt);
-    } else {
-      // =========================================================================
-      // RENDER UNIFIED ROTATING HOLOGRAPHIC BOX (BOX ROTATION STAYS FIXED IN 2-FINGER MODE)
-      // =========================================================================
-      ctx.save();
-      ctx.translate(obj.x, obj.y);
-      ctx.rotate(obj.rotZ);
+    // =========================================================================
+    // RENDER UNIFIED ROTATING HOLOGRAPHIC BOX (BOX ROTATION STAYS FIXED IN 2-FINGER MODE)
+    // =========================================================================
+    ctx.save();
+    ctx.translate(obj.x, obj.y);
+    ctx.rotate(obj.rotZ);
 
       const bSize = effRadius + 42;
 
@@ -1782,7 +1460,6 @@ function renderSceneObjects(ctx, pointerRays, isEngaged, activePointedId, dwellP
       }
 
       ctx.restore();
-    }
 
     // 2.0s Laser Targeting Dwell Arc & Brackets
     if (isTargeted && isEngaged) {
@@ -2176,88 +1853,6 @@ function handleVisionLandmarks(multiHandLandmarks, multiHandedness) {
   processInteractions(now);
 }
 
-// --- BAREHANDS ORB TRIGGER HANDLER ---
-function triggerBarehandsOrb(orbId) {
-  barehandsFoley.arrive();
-  if (orbId === 'notes') {
-    let noteObj = SCENE_OBJECTS.find(o => o.id === "OBJ_NOTE");
-    if (!noteObj) {
-      noteObj = {
-        id: "OBJ_NOTE",
-        name: "JARVIS Protocols",
-        icon: "📝",
-        desc: "Directives & Spatial Gestures",
-        x: 640,
-        y: 480,
-        targetX: 640,
-        targetY: 480,
-        prevTargetX: 640,
-        prevTargetY: 480,
-        vx: 0,
-        vy: 0,
-        physVx: 0,
-        physVy: 0,
-        physVrot: 0,
-        throwVx: 0,
-        throwVy: 0,
-        peakThrowVx: 0,
-        peakThrowVy: 0,
-        lastHandMoveTime: 0,
-        radius: 140,
-        scale: 1.0,
-        targetScale: 1.0,
-        modelScale: 1.0,
-        targetModelScale: 1.0,
-        rotX: 0,
-        rotY: 0,
-        rotZ: 0,
-        targetRotX: 0,
-        targetRotY: 0,
-        targetRotZ: 0,
-        modelRotX: 0,
-        targetModelRotX: 0,
-        modelRotY: 0,
-        targetModelRotY: 0,
-        modelRotZ: 0,
-        targetModelRotZ: 0,
-        color: "#00ffcc",
-        idOffset: 0
-      };
-      SCENE_OBJECTS.push(noteObj);
-      spawnShockwave(640, 480, "#00ffcc", 220, 4);
-      lastInteractionText = "📄 OPENED PROTOCOLS GLASS CARD";
-    } else {
-      removeObjectFromScene(noteObj);
-      lastInteractionText = "✕ CLOSED PROTOCOLS CARD";
-    }
-  } else if (orbId === 'models') {
-    const hasHelmet = SCENE_OBJECTS.some(o => o.id === "OBJ_HELMET");
-    if (hasHelmet) {
-      const toRemove = SCENE_OBJECTS.filter(o => o.id === "OBJ_HELMET" || o.id === "OBJ_ROBOT");
-      toRemove.forEach(o => removeObjectFromScene(o));
-      lastInteractionText = "🤖 3D MODELS STOWED";
-    } else {
-      DEFAULT_SCENE_TEMPLATES.filter(t => t.id !== "OBJ_RING").forEach(t => {
-        if (!SCENE_OBJECTS.some(o => o.id === t.id)) {
-          const inst = createSceneObjectInstance(t);
-          SCENE_OBJECTS.push(inst);
-        }
-      });
-      spawnShockwave(640, 480, "#eab308", 220, 4);
-      lastInteractionText = "🤖 3D MODELS DEPLOYED";
-    }
-  } else if (orbId === 'sketch') {
-    barehandsAI.isSketchActive = !barehandsAI.isSketchActive;
-    lastInteractionText = barehandsAI.isSketchActive ? "✏️ 3D AIR SKETCH: ACTIVE (POINT WITH ☝️ TO DRAW)" : "✏️ 3D AIR SKETCH: DISABLED";
-  } else if (orbId === 'explode') {
-    barehandsAI.isExplodeActive = !barehandsAI.isExplodeActive;
-    lastInteractionText = barehandsAI.isExplodeActive ? "💥 3D MODEL EXPLODED VIEW: ACTIVE" : "💥 3D MODEL ASSEMBLED";
-  } else if (orbId === 'reset') {
-    resetAllToDefault();
-    clearAllSketches();
-    lastInteractionText = "⚡ STAGE RECALLED & CENTERED";
-  }
-}
 
 // --- INTENTIONAL CONFIRMATION INTERACTION PROCESSING ---
 function processInteractions(now) {
@@ -2267,81 +1862,6 @@ function processInteractions(now) {
   const tfRight = twoFingerPoints.find(tf => tf.handLabel === 'Right');
   const spHand = scalePointers.find(sp => sp.handLabel === 'Right') || scalePointers[0];
   const isDualTwoFinger = !!(tfLeft && tfRight);
-
-  // =========================================================================
-  // ⚡ 0. BAREHANDS CLAP GESTURE (PALMS TOGETHER, FINGERS UP -> RECALL AI RING)
-  // =========================================================================
-  const leftHand = visionState.allHands.find(h => h.handLabel === 'Left');
-  const rightHand = visionState.allHands.find(h => h.handLabel === 'Right');
-  if (leftHand && rightHand && (now - barehandsAI.lastClapTime > 1200)) {
-    const leftPt = leftHand.handCenterPt;
-    const rightPt = rightHand.handCenterPt;
-    const distH = Math.hypot(leftPt.x - rightPt.x, leftPt.y - rightPt.y);
-    const isLeftUp = leftHand.landmarks[0].y > leftHand.landmarks[9].y;
-    const isRightUp = rightHand.landmarks[0].y > rightHand.landmarks[9].y;
-
-    if (distH < 90 && isLeftUp && isRightUp) {
-      barehandsAI.lastClapTime = now;
-      barehandsFoley.arrive();
-      const ringObj = SCENE_OBJECTS.find(o => o.id === "OBJ_RING");
-      if (ringObj) {
-        ringObj.targetX = (leftPt.x + rightPt.x) / 2;
-        ringObj.targetY = (leftPt.y + rightPt.y) / 2;
-        ringObj.physVx = 0;
-        ringObj.physVy = 0;
-        barehandsAI.isBloomed = true;
-      }
-      spawnShockwave((leftPt.x + rightPt.x) / 2, (leftPt.y + rightPt.y) / 2, "#00ffcc", 280, 5);
-      lastInteractionText = "👏 CLAP DETECTED // JARVIS RECALLED TO CENTER STAGE";
-    }
-  }
-
-  // =========================================================================
-  // ✏️ 0.1 3D SPATIAL AIR DRAWING (SKETCH MODE)
-  // =========================================================================
-  if (barehandsAI.isSketchActive) {
-    const pointerHand = visionState.allHands.find(h => h.gesture && h.gesture.count === 1 && h.gesture.name.includes("Pointer"));
-    if (pointerHand) {
-      const idxTip = pointerHand.landmarks[8];
-      const tipX = idxTip.x * canvasElement.width;
-      const tipY = idxTip.y * canvasElement.height;
-      addSketchPoint(tipX, tipY, 0, pointerHand.handLabel === 'Left' ? '#00e5ff' : '#ff007f');
-      lastInteractionText = `✏️ AIR DRAWING [${pointerHand.handLabel.toUpperCase()}]: (${Math.round(tipX)}, ${Math.round(tipY)})`;
-    } else {
-      finishSketchStroke();
-    }
-  }
-
-  // =========================================================================
-  // 🌸 0.2 BAREHANDS BLOOMING ORB HOVER & PINCH TAP SELECTION
-  // =========================================================================
-  const ringObj = SCENE_OBJECTS.find(o => o.id === "OBJ_RING");
-  if (ringObj && barehandsAI.bloomProgress > 0.6) {
-    let hoveredOrb = null;
-    visionState.allHands.forEach(h => {
-      const idxTip = h.landmarks[8];
-      const tx = idxTip.x * canvasElement.width;
-      const ty = idxTip.y * canvasElement.height;
-
-      barehandsAI.orbs.forEach(orb => {
-        const curDist = orb.dist * barehandsAI.bloomProgress * ringObj.scale;
-        const ox = ringObj.x + Math.cos(orb.angle) * curDist;
-        const oy = ringObj.y + Math.sin(orb.angle) * curDist;
-        const orbR = 34 * barehandsAI.bloomProgress * ringObj.scale;
-        if (Math.hypot(tx - ox, ty - oy) <= orbR + 10) {
-          hoveredOrb = orb;
-          if (h.gesture && (h.gesture.isPinch || h.gesture.count === 1) && (now - barehandsAI.tapTime > 600)) {
-            barehandsAI.tapTime = now;
-            triggerBarehandsOrb(orb.id);
-            spawnShockwave(ox, oy, orb.color, 160, 4);
-          }
-        }
-      });
-    });
-    barehandsAI.activeOrbId = hoveredOrb ? hoveredOrb.id : null;
-  } else {
-    barehandsAI.activeOrbId = null;
-  }
 
   // =========================================================================
   // 1. DYNAMIC 3D MODEL SCALING (Thumb + Pointer 🤏 on Right OR Left Hand inside box)
@@ -3054,47 +2574,6 @@ canvasElement.addEventListener('mousedown', (e) => {
   mouseStartX = x;
   mouseStartY = y;
 
-  // 1. Check if clicking on an active blooming Orb
-  const ringObj = SCENE_OBJECTS.find(o => o.id === "OBJ_RING");
-  if (ringObj && barehandsAI.bloomProgress > 0.4) {
-    for (const orb of barehandsAI.orbs) {
-      const curDist = orb.dist * barehandsAI.bloomProgress * ringObj.scale;
-      const ox = ringObj.x + Math.cos(orb.angle) * curDist;
-      const oy = ringObj.y + Math.sin(orb.angle) * curDist;
-      const orbR = 34 * barehandsAI.bloomProgress * ringObj.scale;
-      if (Math.hypot(x - ox, y - oy) <= orbR + 8) {
-        triggerBarehandsOrb(orb.id);
-        spawnShockwave(ox, oy, orb.color, 160, 4);
-        isMouseDown = false;
-        return;
-      }
-    }
-  }
-
-  // 2. Check if clicking directly on Ring center -> Toggle Bloom
-  if (ringObj && Math.hypot(x - ringObj.x, y - ringObj.y) <= ringObj.radius * 0.7) {
-    const bloomed = barehandsAI.toggleBloom();
-    spawnShockwave(ringObj.x, ringObj.y, "#00e5ff", 200, 4);
-    lastInteractionText = bloomed ? "✦ ORBS BLOOMED // MENU EXPANDED" : "✦ ORBS FOLDED";
-    isMouseDown = false;
-    return;
-  }
-
-  // 3. Check if clicking [✕] on Notes card
-  const noteObj = SCENE_OBJECTS.find(o => o.id === "OBJ_NOTE");
-  if (noteObj) {
-    const localP = toLocalBoxCoords(x, y, noteObj);
-    const closeBtnX = 230 - 22;
-    const closeBtnY = -140 + 20;
-    if (Math.hypot(localP.x - closeBtnX, localP.y - closeBtnY) <= 18) {
-      removeObjectFromScene(noteObj);
-      barehandsFoley.release();
-      lastInteractionText = "✕ CLOSED PROTOCOLS CARD";
-      isMouseDown = false;
-      return;
-    }
-  }
-
   let clickedObj = null;
   SCENE_OBJECTS.forEach(obj => {
     const bHalf = (obj.radius * obj.scale) + 40;
@@ -3611,9 +3090,9 @@ function renderLoop(timestamp) {
         pointedObjectBanner.style.color = "#00ffcc";
       }
 
-      selectedObjectIcon.textContent = confirmedSelectedObject.icon;
-      selectedObjectName.textContent = confirmedSelectedObject.name;
-      selectedObjectDesc.textContent = `👈 Left ✌️ (1.5s): 3D Rotate | 👉 Right 🤏: Scale Up/Down`;
+      if (selectedObjectIcon) selectedObjectIcon.textContent = confirmedSelectedObject.icon;
+      if (selectedObjectName) selectedObjectName.textContent = confirmedSelectedObject.name;
+      if (selectedObjectDesc) selectedObjectDesc.textContent = `👈 Left ✌️ (1.5s): 3D Rotate | 👉 Right 🤏: Scale Up/Down`;
     }
   } else {
     systemStatusText.textContent = "STATUS: TARGETING LASER ACTIVE";
@@ -4011,10 +3490,6 @@ class CyberpunkMusicEngine {
       const h = val * this.canvas.height;
       this.canvasCtx.fillStyle = `hsl(${180 + val * 60}, 100%, 65%)`;
       this.canvasCtx.fillRect(i * barWidth, this.canvas.height - h, barWidth - 1, h);
-    }
-
-    if (barehandsAI) {
-      barehandsAI.amp = Math.max(barehandsAI.amp, (this.freqData[2] || 0) / 255 * 0.9);
     }
   }
 }
