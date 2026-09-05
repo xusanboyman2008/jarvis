@@ -250,43 +250,21 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 </head>
 <body class="ui-cyan">
 <a href="index.html" id="btn-goto-playground" style="position:fixed; top:14px; left:14px; z-index:999; text-decoration:none; background:rgba(15,23,42,0.85); border:1px solid rgba(0,229,255,0.6); color:#00e5ff; font:12px -apple-system,sans-serif; font-weight:700; padding:7px 14px; border-radius:8px; backdrop-filter:blur(10px); box-shadow:0 4px 15px rgba(0,0,0,0.5); display:inline-flex; align-items:center; gap:6px;">🎛️ 3D HUD PLAYGROUND</a>
-<!-- Opened by double-clicking the file instead of through the server? Everything
-     client-side still works (render, camera, gesture math), so the page LOOKS
-     alive, but every /orb /tree /note /state call dies silently: you can pinch
-     and rotate, and nothing will ever OPEN. Field-caught 2026-08-17 after a user
-     lost a day to it. Say so plainly instead of letting the next person chase
-     tap thresholds. -->
-<script>
-if (location.protocol === "file:") {
-  document.documentElement.innerHTML =
-    '<body style="margin:0;background:#04191c;color:#dff3ee;font:15px/1.65 ui-monospace,Menlo,monospace;' +
-    'display:flex;align-items:center;justify-content:center;height:100vh;padding:24px;text-align:left">' +
-    '<div style="max-width:620px">' +
-    '<div style="font-size:22px;letter-spacing:.18em;color:#6fe3c9;margin-bottom:18px">BAREHANDS NEEDS ITS SERVER</div>' +
-    '<p>You opened this file directly, so there is no server behind it. The camera and the gestures will still work, ' +
-    'but nothing will ever <b>open</b>: tapping a card asks the server for the file, and there is nothing to ask.</p>' +
-    '<p style="margin-top:16px">Start it from the barehands folder:</p>' +
-    '<pre style="background:#052227;border:1px solid #14484f;padding:12px 14px;border-radius:8px;color:#9ff0dd">' +
-    'python3 server.py      <span style="color:#6b9c96"># Windows: python server.py</span></pre>' +
-    '<p style="margin-top:14px">Then open this in Chrome:</p>' +
-    '<pre style="background:#052227;border:1px solid #14484f;padding:12px 14px;border-radius:8px;color:#9ff0dd">' +
-    'http://127.0.0.1:8794/stage.html</pre>' +
-    '<p style="margin-top:18px;color:#7fb3ab">If you changed "port" in barehands.json, use that port instead.</p>' +
-    '</div></body>';
-  throw new Error("barehands: opened over file://, server required");
-}
-// First-run watchdog: the hand tracker and the 3D library arrive from CDNs,
-// so with no internet the boot screen sits forever with no error. Say so.
-setTimeout(function () {
-  var b = document.getElementById("boot");
-  if (b && b.isConnected) b.innerHTML +=
-    '<span style="color:#7fb3ab;font-size:12px">still loading? the first run downloads the hand tracker and needs internet once. TROUBLESHOOTING.md has more.</span>';
-}, 12000);
-</script>
+
+<!-- 🎵 Cyberpunk Synthwave Music Player -->
+<div id="music-bar-container" style="position:fixed; top:14px; right:14px; z-index:999; display:inline-flex; align-items:center; gap:8px; background:rgba(15,23,42,0.85); border:1px solid rgba(0,229,255,0.6); padding:5px 12px; border-radius:8px; backdrop-filter:blur(10px); box-shadow:0 4px 15px rgba(0,0,0,0.5);">
+  <button id="btn-music-prev" style="background:transparent; border:none; color:#38bdf8; cursor:pointer; font-size:13px;" title="Previous Track">⏮️</button>
+  <button id="btn-music-toggle" style="background:transparent; border:none; color:#00ffcc; cursor:pointer; font-size:13px;" title="Play/Pause">▶️</button>
+  <button id="btn-music-next" style="background:transparent; border:none; color:#38bdf8; cursor:pointer; font-size:13px;" title="Next Track">⏭️</button>
+  <canvas id="audio-visualizer-canvas" width="48" height="16" style="display:block; border-radius:3px; background:rgba(0,0,0,0.4);"></canvas>
+  <span id="track-title-text" style="font:11px 'SF Mono',Menlo,monospace; color:#8ff0e4; font-weight:700;">JARVIS Synth Pulse</span>
+</div>
+
 <video id="cam" autoplay playsinline muted></video>
+<canvas id="hand-canvas" style="position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:997;"></canvas>
 <div id="behind"></div>
 <div id="boot">BAREHANDS<br><span style="color:#a8d8cf;font-size:12px;letter-spacing:0.22em">by jaredrhod</span><br><span style="color:#a8d8cf;font-size:13px">loading hand tracker… allow the camera when asked</span></div>
-<div id="hint">tap the RING = orbs · tap an orb = its tree · TAP a card = open · pinch-drag = move · hold still ~1s = 3D rotate · two hands = scale · TAP an open item = close · CLAP (palms together, fingers up) = ring center-stage · CLAW: flash open, claw, aim, hold the strain 2s, SNAP = force pull · empty pinch dragged sideways = explode scrub · R respawn / C camera / D debug</div>
+<div id="hint">tap the RING = orbs · tap an orb = its tree · TAP a card = open · pinch-drag = move · hold still ~1s = 3D rotate · two hands = scale · TAP an open item = close · CLAP (palms together, fingers up) = ring center-stage · CLAW: flash open, claw, aim, hold the strain 2s, SNAP = force pull · empty pinch dragged sideways = explode scrub · R respawn / C camera / D debug / V video / B box</div>
 <div id="debug"></div>
 <div id="toast"></div>
 
@@ -342,6 +320,172 @@ let SAMPLER = null;    // the pose sampler (dormant — claw/pinch tuning)
 let CLAPSAMP = null;   // the P clap recorder (v3.9.1)
 let SAMPLED = "";      // its frozen last result (D overlay)
 let landmarker = null, lastVideoTs = -1, frames = 0, fps = 0, lastFpsTs = performance.now();
+let showSkeletonDots = false;
+
+// 🎵 Cyberpunk Synthesizer Audio Engine
+class StageCyberpunkMusic {
+  constructor() {
+    this.ctx = null;
+    this.analyser = null;
+    this.isPlaying = false;
+    this.currentTrackIndex = 0;
+    this.timer = null;
+    this.step = 0;
+    this.tracks = [
+      { name: "JARVIS Synth Pulse (120 BPM)", bpm: 120, root: 48, scale: [0, 3, 7, 10, 12, 15, 19, 22] },
+      { name: "Neural Core Ambient (85 BPM)", bpm: 85, root: 45, scale: [0, 2, 3, 7, 8, 12, 14, 15] },
+      { name: "Cyber City Electro (128 BPM)", bpm: 128, root: 50, scale: [0, 3, 5, 7, 10, 12, 15, 17] },
+      { name: "Matrix Deep Echo (96 BPM)", bpm: 96, root: 41, scale: [0, 3, 7, 8, 12, 15, 19, 20] }
+    ];
+    this.canvas = document.getElementById('audio-visualizer-canvas');
+    this.canvasCtx = this.canvas ? this.canvas.getContext('2d') : null;
+    this.trackTitleText = document.getElementById('track-title-text');
+    this.btnToggle = document.getElementById('btn-music-toggle');
+    this.btnPrev = document.getElementById('btn-music-prev');
+    this.btnNext = document.getElementById('btn-music-next');
+    this.freqData = new Uint8Array(32);
+    this.initBindings();
+  }
+
+  initBindings() {
+    if (this.btnToggle) this.btnToggle.addEventListener('click', () => this.toggle());
+    if (this.btnPrev) this.btnPrev.addEventListener('click', () => this.prevTrack());
+    if (this.btnNext) this.btnNext.addEventListener('click', () => this.nextTrack());
+  }
+
+  initAudio() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioCtx();
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 64;
+      this.gainNode = this.ctx.createGain();
+      this.gainNode.gain.setValueAtTime(0.18, this.ctx.currentTime);
+      this.gainNode.connect(this.analyser);
+      this.analyser.connect(this.ctx.destination);
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  }
+
+  playTone(freq, type, duration, gainVal, when) {
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, when);
+      g.gain.setValueAtTime(gainVal, when);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+      osc.connect(g);
+      g.connect(this.gainNode);
+      osc.start(when);
+      osc.stop(when + duration);
+    } catch(e) {}
+  }
+
+  playNoise(duration, gainVal, when) {
+    if (!this.ctx) return;
+    try {
+      const bufferSize = this.ctx.sampleRate * duration;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = buffer;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = "highpass";
+      filter.frequency.setValueAtTime(1200, when);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(gainVal, when);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+      whiteNoise.connect(filter);
+      filter.connect(g);
+      g.connect(this.gainNode);
+      whiteNoise.start(when);
+    } catch(e) {}
+  }
+
+  mtof(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+  }
+
+  tick() {
+    if (!this.isPlaying || !this.ctx) return;
+    const track = this.tracks[this.currentTrackIndex];
+    const now = this.ctx.currentTime;
+    const stepDuration = (60 / track.bpm) / 4;
+
+    if (this.step % 4 === 0) {
+      this.playTone(130, 'sine', 0.18, 0.45, now);
+    } else if (this.step % 2 === 0) {
+      this.playNoise(0.04, 0.10, now);
+    }
+
+    if (this.step % 2 === 0) {
+      const bassNote = track.root + (this.step % 8 === 0 ? 0 : (this.step % 8 === 4 ? -5 : 0));
+      this.playTone(this.mtof(bassNote), 'sawtooth', stepDuration * 1.8, 0.24, now);
+    }
+
+    const scaleIdx = (this.step * 3 + (this.currentTrackIndex * 2)) % track.scale.length;
+    const arpNote = track.root + 12 + track.scale[scaleIdx];
+    this.playTone(this.mtof(arpNote), 'triangle', stepDuration * 0.9, 0.15, now);
+
+    this.step = (this.step + 1) % 64;
+    this.timer = setTimeout(() => this.tick(), stepDuration * 1000);
+  }
+
+  toggle() {
+    this.initAudio();
+    this.isPlaying = !this.isPlaying;
+    if (this.isPlaying) {
+      if (this.btnToggle) this.btnToggle.textContent = '⏸️';
+      this.tick();
+      this.renderVisualizer();
+    } else {
+      if (this.btnToggle) this.btnToggle.textContent = '▶️';
+      clearTimeout(this.timer);
+    }
+    this.updateUI();
+  }
+
+  nextTrack() {
+    this.currentTrackIndex = (this.currentTrackIndex + 1) % this.tracks.length;
+    this.step = 0;
+    this.updateUI();
+  }
+
+  prevTrack() {
+    this.currentTrackIndex = (this.currentTrackIndex - 1 + this.tracks.length) % this.tracks.length;
+    this.step = 0;
+    this.updateUI();
+  }
+
+  updateUI() {
+    const track = this.tracks[this.currentTrackIndex];
+    if (this.trackTitleText) this.trackTitleText.textContent = track.name;
+  }
+
+  renderVisualizer() {
+    if (!this.isPlaying) {
+      if (this.canvasCtx && this.canvas) this.canvasCtx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      return;
+    }
+    requestAnimationFrame(() => this.renderVisualizer());
+    if (!this.analyser || !this.canvasCtx || !this.canvas) return;
+    this.analyser.getByteFrequencyData(this.freqData);
+    this.canvasCtx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const barCount = 10;
+    const barWidth = this.canvas.width / barCount;
+    for (let i = 0; i < barCount; i++) {
+      const val = this.freqData[i * 2] / 255;
+      const h = val * this.canvas.height;
+      this.canvasCtx.fillStyle = `hsl(${180 + val * 60}, 100%, 65%)`;
+      this.canvasCtx.fillRect(i * barWidth, this.canvas.height - h, barWidth - 1, h);
+    }
+  }
+}
+
+const stageMusic = new StageCyberpunkMusic();
 
 let UID = 1;
 
@@ -1640,7 +1784,19 @@ addEventListener("keydown", e => {
   // live respawn: re-read the notes AND props trees from disk before
   // redrawing — a freshly dropped file appears on a plain R press
   if (e.key === "r" || e.key === "R") loadTree().then(() => spawnStage());
-  if (e.key === "d" || e.key === "D") dbg.style.display = dbg.style.display === "block" ? "none" : "block";
+  if (e.key === "d" || e.key === "D") {
+    showSkeletonDots = !showSkeletonDots;
+    dbg.style.display = dbg.style.display === "block" ? "none" : "block";
+    toast(showSkeletonDots ? "debug dots: ON" : "debug dots: OFF", 1200);
+  }
+  if (e.key === "v" || e.key === "V") {
+    cam.style.opacity = cam.style.opacity === "0" ? "1" : "0";
+    toast(cam.style.opacity === "0" ? "video: OFF (transparent)" : "video: ON", 1200);
+  }
+  if (e.key === "b" || e.key === "B") {
+    document.body.classList.toggle("hide-box-ui");
+    toast("box UI toggled", 1200);
+  }
   if (e.key === "c" || e.key === "C") cycleCam();
   if (e.key === "p" || e.key === "P") {
     SAMPLER = { until: performance.now() + 4000, r: [], h8: [], h12: [], h16: [], h20: [], s: [], a: [] };
@@ -1786,7 +1942,7 @@ function endGrab(c, i, cur) {
       const bMs = performance.now() - (cur.grabT || 0);
       const bTrav = Math.hypot(cur.x - (c.tapX || cur.x),
                                cur.y - (c.tapY || cur.y));
-      if (bMs < 350 && bTrav < 24) browserTap(c, cur);
+      if (bMs < 550 && bTrav < 42) browserTap(c, cur);
     }
     // v3.3/v3.8: a quick tap on the GRIP BAR closes — notes and
     // folder panes alike
@@ -1795,43 +1951,32 @@ function endGrab(c, i, cur) {
       const gMs = performance.now() - (cur.grabT || 0);
       const gTrav = Math.hypot(cur.x - (c.tapX || cur.x),
                                cur.y - (c.tapY || cur.y));
-      if (gMs < 350 && gTrav < 24) killItem(c);
+      if (gMs < 550 && gTrav < 42) killItem(c);
       c.barGrab = false;
     }
-    // GESTURE v3 (2026-08-14, Jared's spec — "make it a single pinch"):
-    // THE TAP OPENS — a quick, near-still release on a file-card
-    // unfurls its note. Same tap idiom rows and widget buttons already
-    // use; the double flash is dead.
+    // GESTURE v3: THE TAP OPENS file-card
     const pullFresh = performance.now() - (c.pullT || 0) < 800 ||
                       cur.probKill;
     if (c.type === "card" && c.def.file && !pullFresh) {
       const tMs = performance.now() - (cur.grabT || 0);
       const tTrav = Math.hypot(cur.x - (c.tapX || cur.x),
                                cur.y - (c.tapY || cur.y));
-      if (tMs < 300 && tTrav < 26) openPanel(c);
+      if (tMs < 500 && tTrav < 42) openPanel(c);
     }
-    // GESTURE v3.1 (2026-08-14, the crush is DEAD — "that is happening
-    // too naturally"): THE TAP IS SYMMETRIC — tap opens closed things,
-    // tap CLOSES open things. Quick near-still release on a note,
-    // image, or hologram = it recedes. Widgets/rows/orbs keep their own
-    // tap meanings; a fresh force-pull catch can't be tap-killed.
-    // v3.8: notes close at the BAR only (matching folders) — a body
-    // tap can't kill a note mid-read; images/models keep tap-anywhere
+    // GESTURE v3.1: THE TAP IS SYMMETRIC — tap opens closed things, tap closes open items
     if ((c.type === "img" || c.type === "model")
         && !pullFresh && !c.flying) {
       const xMs = performance.now() - (cur.grabT || 0);
       const xTrav = Math.hypot(cur.x - (c.tapX || cur.x),
                                cur.y - (c.tapY || cur.y));
-      if (xMs < 300 && xTrav < 26) killItem(c);
+      if (xMs < 500 && xTrav < 42) killItem(c);
     }
-    // PHASE 2 quick-tap releases: the RING toggles its orbital bloom;
-    // an ORB grows into its browser pane (same discrimination gate as
-    // the browser-row tap: short grip, near-zero travel)
+    // PHASE 2 quick-tap releases: RING toggles orbital bloom, ORB opens browser pane
     {
       const qMs = performance.now() - (cur.grabT || 0);
       const qTr = Math.hypot(cur.x - (c.tapX ?? cur.x),
                              cur.y - (c.tapY ?? cur.y));
-      if (qMs < 350 && qTr < 24) {
+      if (qMs < 550 && qTr < 42) {
         if (c.type === "widget" && c.def.w === "ring" &&
             c.mode === "move") {
           const sc = RINGS.get(c.id);
@@ -2095,6 +2240,30 @@ async function boot() {
       lastVideoTs = cam.currentTime;
       const res = landmarker.detectForVideo(cam, now);
       const seen = new Set();
+
+      const hCanvas = document.getElementById("hand-canvas");
+      if (hCanvas) {
+        if (hCanvas.width !== innerWidth || hCanvas.height !== innerHeight) {
+          hCanvas.width = innerWidth;
+          hCanvas.height = innerHeight;
+        }
+        const hCtx = hCanvas.getContext("2d");
+        hCtx.clearRect(0, 0, hCanvas.width, hCanvas.height);
+        if (showSkeletonDots && res && res.landmarks) {
+          res.landmarks.forEach(lms => {
+            [4, 8, 12, 16, 20].forEach(idx => {
+              const pt = toScreen(lms[idx]);
+              hCtx.beginPath();
+              hCtx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+              hCtx.fillStyle = idx === 4 || idx === 8 ? "#00ffff" : "#00ffcc";
+              hCtx.shadowColor = "#00e5ff";
+              hCtx.shadowBlur = 8;
+              hCtx.fill();
+            });
+          });
+        }
+      }
+
       (res.landmarks || []).forEach((lms, i) => {
         seen.add(i);
         const cur = getCursor(i);
@@ -2126,6 +2295,25 @@ async function boot() {
           1.45 * Math.hypot(lms[m].x - W0.x, lms[m].y - W0.y));
         const extFingers = extArr.filter(Boolean).length;
         const holdingI = items.some(k => k.grabbedBy.includes(i));
+
+        // 2-Finger Attached Scroll (Index + Middle extended together, Ring/Pinky down)
+        const dIndexMiddle = Math.hypot(lms[8].x - lms[12].x, lms[8].y - lms[12].y);
+        const isTwoFingerScroll = extArr[0] && extArr[1] && !extArr[2] && !extArr[3] && dIndexMiddle < 0.085;
+        if (isTwoFingerScroll) {
+          const midY = (toScreen(lms[8]).y + toScreen(lms[12]).y) / 2;
+          if (cur.lastTwoFingerY != null) {
+            const dy = midY - cur.lastTwoFingerY;
+            items.filter(it => (it.type === "browser" || it.type === "panel") && it.body).forEach(p => {
+              const bBox = p.el.querySelector(".body") || p.el;
+              const maxS = Math.max(0, p.body.scrollHeight - bBox.clientHeight);
+              p.scrollY = Math.min(maxS, Math.max(0, (p.scrollY || 0) + dy * 2.2));
+              p.body.style.transform = `translateY(${-p.scrollY}px)`;
+            });
+          }
+          cur.lastTwoFingerY = midY;
+        } else {
+          cur.lastTwoFingerY = null;
+        }
         // v3.7 — FITTED FROM HIS PINCH CORPUS (3 correct / 3 fists,
         // 2026-08-14 afternoon): the correct pinch is the OK-SIGN —
         // index curled onto the thumb while middle/ring/pinky ARCH OUT
